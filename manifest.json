@@ -1,14 +1,22 @@
 {
-  "name": "PGN Study PRO · Coordinador",
-  "short_name": "PGN PRO",
-  "description": "Audios de preparación para cargo Profesional Coordinador - Procuraduría",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#0e0b1a",
-  "theme_color": "#a855f7",
-  "orientation": "portrait-primary",
-  "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+    "name": "PGN Study PRO · Coordinador",
+    "short_name": "PGN Study",
+    "description": "Audios para preparación al cargo de Coordinador - Procuraduría General de la Nación",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#22d3ee",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
 }
