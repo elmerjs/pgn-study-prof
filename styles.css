@@ -15,6 +15,11 @@
   --radius-card: 16px;
   --mini-player-height: 68px;
   --header-height: 80px;
+
+  /* Colores de categorías */
+  --cat-comunes: #4A90D9;
+  --cat-especificos: #E8923D;
+  --cat-comportamental: #7B4B9A;
 }
 
 [data-theme="light"] {
@@ -70,7 +75,7 @@ body {
 
 /* Botón Instalar */
 .install-btn {
-  background: #6b21a8; /* morado */
+  background: #6b21a8;
   color: #fff;
   border: none;
   border-radius: 999px;
@@ -200,12 +205,12 @@ body {
 /* ==================== BANNER PRO ==================== */
 .pro-banner {
   position: fixed;
-  bottom: 76px;          /* justo encima del mini-player */
+  bottom: 76px;
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 24px);
   max-width: 680px;
-  background: #1a1408;   /* dorado oscuro */
+  background: #1a1408;
   border: 1px solid #b59410;
   border-radius: 18px;
   z-index: 9999;
@@ -214,7 +219,6 @@ body {
   justify-content: space-between;
   padding: 12px 14px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-  /* Oculto por defecto mediante CSS */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.5s ease, visibility 0.5s ease;

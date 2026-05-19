@@ -2,13 +2,85 @@
    PGN Study PRO - Lógica principal
    ============================================================ */
 
-// ===== EPISODIOS PRECARGADOS =====
+// ===== EPISODIOS (7 audios, orden recomendado) =====
 const episodes = [
-  { id: 1, title: 'Constitución Política', subtitle: 'Fundamentos constitucionales', description: 'Artículos clave para el concurso de la PGN', category: 'constitucion', emoji: '📜', file: 'audios/1.m4a', duration: '28:04', durationSeconds: 1684 },
-  { id: 2, title: 'Estructura de la PGN', subtitle: 'Organigrama y funciones', description: 'Decreto-Ley y competencias', category: 'estructura', emoji: '🏛️', file: 'audios/2.m4a', duration: '30:34', durationSeconds: 1834 },
-  { id: 5, title: 'Ley 1437 (CPACA)', subtitle: 'Procedimiento administrativo', description: 'Aplicación en la Procuraduría', category: 'cpaca', emoji: '📋', file: 'audios/5.m4a', duration: '19:49', durationSeconds: 1189 },
-  { id: 7, title: 'Control fiscal y funcional', subtitle: 'Competencias funcionales', description: 'Funciones misionales y de control', category: 'funcional', emoji: '⚙️', file: 'audios/7.m4a', duration: '22:15', durationSeconds: 1335 },
-  { id: 8, title: 'Planeación estratégica', subtitle: 'Enfoque estratégico PGN', description: 'Plan estratégico y gestión por resultados', category: 'estrategia', emoji: '🧠', file: 'audios/8.m4a', duration: '25:10', durationSeconds: 1510 }
+  {
+    id: 1,
+    title: 'Claves del núcleo común para la Procuraduría',
+    subtitle: 'Fundamentos transversales',
+    description: 'Conceptos esenciales comunes a todos los cargos de la PGN',
+    category: 'comunes',
+    emoji: '📚',
+    file: 'audios/Claves_del_núcleo_común_para_la_Procuraduría.m4a',
+    duration: '28:04',
+    durationSeconds: 1684
+  },
+  {
+    id: 2,
+    title: 'Estructura y funciones de la Procuraduría',
+    subtitle: 'Organigrama y competencias',
+    description: 'Decreto-Ley, funciones macro y estructura orgánica',
+    category: 'comunes',
+    emoji: '🏛️',
+    file: 'audios/Estructura_y_funciones_de_la_Procuraduría.m4a',
+    duration: '30:34',
+    durationSeconds: 1834
+  },
+  {
+    id: 3,
+    title: 'Episodio 3 · Coordinación institucional',
+    subtitle: 'Articulación interinstitucional',
+    description: 'Roles del coordinador y gestión pública',
+    category: 'comunes',
+    emoji: '🎯',
+    file: 'audios/Ep-3.m4a',
+    duration: '19:49',
+    durationSeconds: 1189
+  },
+  {
+    id: 4,
+    title: 'La gestión documental evita la impunidad',
+    subtitle: 'Archivo y transparencia',
+    description: 'Función disciplinaria y gestión documental en la PGN',
+    category: 'comunes',
+    emoji: '📄',
+    file: 'audios/La_gestión_documental_evita_la_impunidad.m4a',
+    duration: '25:41',
+    durationSeconds: 1541
+  },
+  {
+    id: 5,
+    title: 'Ofimática y ética digital en la PGN',
+    subtitle: 'Herramientas y principios',
+    description: 'Competencias digitales y ética en el entorno laboral',
+    category: 'comunes',
+    emoji: '💻',
+    file: 'audios/Ofimática_y_ética_digital_en_la_PGN.m4a',
+    duration: '15:47',
+    durationSeconds: 947
+  },
+  {
+    id: 6,
+    title: 'Lógica y pilares de la contratación estatal',
+    subtitle: 'Contratación pública',
+    description: 'Principios, etapas y normativa de la contratación',
+    category: 'especificos',
+    emoji: '📋',
+    file: 'audios/Lógica_y_pilares_de_la_contratación_estatal.m4a',
+    duration: '29:33',
+    durationSeconds: 1773
+  },
+  {
+    id: 7,
+    title: 'Estrategia psicométrica para el examen PGN',
+    subtitle: 'Pruebas comportamentales',
+    description: 'Preparación para las pruebas psicotécnicas del concurso',
+    category: 'comportamental',
+    emoji: '🧠',
+    file: 'audios/Estrategia_psicométrica_para_el_examen_PGN.m4a',
+    duration: '18:32',
+    durationSeconds: 1112
+  }
 ];
 
 // ===== ESTADO GLOBAL =====
@@ -24,7 +96,7 @@ const state = {
   theme: 'dark'
 };
 
-let deferredPrompt = null;   // para beforeinstallprompt
+let deferredPrompt = null;
 
 // ===== ELEMENTOS DEL DOM =====
 const $ = (sel) => document.querySelector(sel);
@@ -87,7 +159,7 @@ function init() {
   setupEventListeners();
   setupAudioListeners();
   bindInstallBtn();
-  setTimeout(initProBanner, 1000);   // Se ejecuta después de 1s (el propio banner espera 45s más)
+  setTimeout(initProBanner, 1000);
 }
 
 // ===== TEMA =====
@@ -203,7 +275,11 @@ function renderEpisodes(category = 'todos') {
 }
 
 function categoryName(slug) {
-  const map = { constitucion: 'Constitución', estructura: 'Estructura', cpaca: 'CPACA', funcional: 'Funcional', estrategia: 'Estrategia' };
+  const map = {
+    comunes: 'Comunes',
+    especificos: 'Específicos',
+    comportamental: 'Comportamental'
+  };
   return map[slug] || slug;
 }
 
@@ -422,7 +498,6 @@ function setupEventListeners() {
     if (e.key === ' ') { e.preventDefault(); togglePlayPause(); }
   });
 
-  // Cerrar banner PRO
   dom.proCloseBtn.addEventListener('click', () => {
     dom.proBanner.style.opacity = '0';
     dom.proBanner.style.visibility = 'hidden';
@@ -456,13 +531,10 @@ function bindInstallBtn() {
 
 // ===== BANNER PRO =====
 function initProBanner() {
-  // Aparece a los 45 segundos (después de que se llame a esta función)
   setTimeout(() => {
     dom.proBanner.style.opacity = '1';
     dom.proBanner.style.visibility = 'visible';
   }, 45000);
-
-  // El botón "Ver PRO" ya tiene el enlace en HTML
 }
 
 // ===== TOAST =====
