@@ -1,866 +1,539 @@
-/* ============================================================
-   PGN STUDY PRO · COORDINADOR - Lógica principal
-   ============================================================ */
+/* =========================================
+   CONFIGURACIÓN Y DATOS BASE
+   ========================================= */
 
-// ========== CONFIGURACIÓN ==========
-// CONTRASEÑA ADMIN: admin123  <-- Cambiar por la deseada
-const ADMIN_PASSWORD = 'admin123';
+// CONTRASEÑA DEL ADMIN (Fácil de cambiar)
+const ADMIN_PASSWORD = "admin"; 
 
-// Episodios base precargados
-const BASE_EPISODES = [
+// Episodios base inmutables (precargados)
+const baseEpisodes = [
   {
-    id: 'base-1',
-    title: 'Claves del núcleo común para la Procuraduría',
-    subtitle: 'Núcleo común · Componente de conocimiento',
-    description: 'Fundamentos transversales para todos los cargos PGN',
-    category: 'general',
-    emoji: '📚',
-    file: 'audios/Claves_del_núcleo_común_para_la_Procuraduría.m4a',
-    duration: '28:04',
-    durationSeconds: 28*60 + 4,
-    isBase: true
+    id: "ep-base-1",
+    title: "Claves del núcleo común para la Procuraduría",
+    subtitle: "Núcleo común · Componente de conocimiento",
+    desc: "Fundamentos transversales para todos los cargos PGN",
+    category: "general",
+    emoji: "📚",
+    file: "audios/Claves_del_núcleo_común_para_la_Procuraduría.m4a",
+    durationStr: "28:04",
+    durationSec: 1684,
+    isAdminAdded: false
   },
   {
-    id: 'base-2',
-    title: 'Episodio 3 · Coordinación institucional',
-    subtitle: 'Gestión pública y coordinación',
-    description: 'Articulación interinstitucional y roles del coordinador',
-    category: 'general',
-    emoji: '🎯',
-    file: 'audios/Ep-3.m4a',
-    duration: '19:49',
-    durationSeconds: 19*60 + 49,
-    isBase: true
+    id: "ep-base-2",
+    title: "Episodio 3 · Coordinación institucional",
+    subtitle: "Gestión pública y coordinación",
+    desc: "Articulación interinstitucional y roles del coordinador",
+    category: "general",
+    emoji: "🤝",
+    file: "audios/Ep-3.m4a",
+    durationStr: "19:49",
+    durationSec: 1189,
+    isAdminAdded: false
   },
   {
-    id: 'base-3',
-    title: 'Estructura y funciones de la Procuraduría',
-    subtitle: 'Estructura orgánica PGN · Decreto-Ley',
-    description: 'Organigrama, funciones macro y competencias por nivel',
-    category: 'general',
-    emoji: '🏛️',
-    file: 'audios/Estructura_y_funciones_de_la_Procuraduría.m4a',
-    duration: '30:34',
-    durationSeconds: 30*60 + 34,
-    isBase: true
+    id: "ep-base-3",
+    title: "Estructura y funciones de la Procuraduría",
+    subtitle: "Estructura orgánica PGN · Decreto-Ley",
+    desc: "Organigrama, funciones macro y competencias por nivel",
+    category: "general",
+    emoji: "🏛️",
+    file: "audios/Estructura_y_funciones_de_la_Procuraduría.m4a",
+    durationStr: "30:34",
+    durationSec: 1834,
+    isAdminAdded: false
   }
 ];
 
-// ========== ESTADO GLOBAL ==========
-const state = {
-  currentEpisodeId: null,
-  isPlaying: false,
-  currentTime: 0,
-  duration: 0,
-  playbackRate: 1,
-  sleepTimerMinutes: null,
-  sleepTimeoutId: null,
-  activeCategory: 'all',
-  adminAuthenticated: false,
-  theme: 'dark'
-};
+// Variables de Estado
+let episodes = [];
+let userProgress = {}; // { epId: secondsPlayed }
+let currentEpId = null;
+let currentFilter = 'todos';
+let audio = new Audio();
+let isPlaying = false;
+let sleepTimer = null;
+let playbackRates = [1, 1.5, 2];
+let currentRateIndex = 0;
+let sleepTimes = [0, 15, 30, 45, 60];
+let currentSleepIndex = 0;
 
-// ========== ELEMENTOS DEL DOM ==========
-const dom = {
-  // Header
-  themeToggle: document.getElementById('themeToggle'),
-  adminTrigger: document.getElementById('adminTrigger'),
-  globalProgressBar: document.querySelector('.global-progress-bar'),
-  globalProgressText: document.getElementById('globalProgressText'),
+/* =========================================
+   INICIALIZACIÓN
+   ========================================= */
 
-  // Continue banner
-  continueBanner: document.getElementById('continueBanner'),
-  continueTitle: document.getElementById('continueTitle'),
-  continueProgressFill: document.getElementById('continueProgressFill'),
-  continuePlayBtn: document.getElementById('continuePlayBtn'),
+document.addEventListener('DOMContentLoaded', () => {
+  initApp();
+  registerServiceWorker();
+});
 
-  // Tabs
-  categoryTabs: document.querySelectorAll('.cat-tab'),
-
-  // Episodes list
-  episodesList: document.getElementById('episodesList'),
-  emptyState: document.getElementById('emptyState'),
-
-  // Mini player
-  miniPlayer: document.getElementById('miniPlayer'),
-  miniPlayerTrigger: document.getElementById('miniPlayerTrigger'),
-  miniArtwork: document.getElementById('miniArtwork'),
-  miniTitle: document.getElementById('miniTitle'),
-  miniProgressFill: document.getElementById('miniProgressFill'),
-  miniPlayBtn: document.getElementById('miniPlayBtn'),
-
-  // Expanded player
-  expandedPlayer: document.getElementById('expandedPlayer'),
-  collapsePlayer: document.getElementById('collapsePlayer'),
-  artworkRing1: document.getElementById('artworkRing1'),
-  artworkRing2: document.getElementById('artworkRing2'),
-  artworkRing3: document.getElementById('artworkRing3'),
-  artworkEmoji: document.getElementById('artworkEmoji'),
-  waveBars: document.getElementById('waveBars'),
-  playerTitle: document.getElementById('playerTitle'),
-  playerSubtitle: document.getElementById('playerSubtitle'),
-  currentTime: document.getElementById('currentTime'),
-  totalTime: document.getElementById('totalTime'),
-  progressBarContainer: document.getElementById('progressBarContainer'),
-  progressBarFill: document.getElementById('progressBarFill'),
-  progressThumb: document.getElementById('progressThumb'),
-  playPauseBtn: document.getElementById('playPauseBtn'),
-  playIcon: document.getElementById('playIcon'),
-  pauseIcon: document.getElementById('pauseIcon'),
-  rewindBtn: document.getElementById('rewindBtn'),
-  forwardBtn: document.getElementById('forwardBtn'),
-  speedBtn: document.getElementById('speedBtn'),
-  sleepTimerBtn: document.getElementById('sleepTimerBtn'),
-  sleepOptions: document.getElementById('sleepOptions'),
-
-  // Admin
-  adminModal: document.getElementById('adminModal'),
-  closeAdmin: document.getElementById('closeAdmin'),
-  adminAuth: document.getElementById('adminAuth'),
-  adminPassword: document.getElementById('adminPassword'),
-  adminLoginBtn: document.getElementById('adminLoginBtn'),
-  adminError: document.getElementById('adminError'),
-  adminContent: document.getElementById('adminContent'),
-  newTitle: document.getElementById('newTitle'),
-  newSubtitle: document.getElementById('newSubtitle'),
-  newDesc: document.getElementById('newDesc'),
-  newCategory: document.getElementById('newCategory'),
-  newEmoji: document.getElementById('newEmoji'),
-  newFileName: document.getElementById('newFileName'),
-  newDuration: document.getElementById('newDuration'),
-  addEpisodeBtn: document.getElementById('addEpisodeBtn'),
-  adminEpisodeList: document.getElementById('adminEpisodeList'),
-
-  // Audio
-  audio: document.getElementById('audioPlayer'),
-
-  // Toast
-  toastContainer: document.getElementById('toastContainer')
-};
-
-// ========== INICIALIZACIÓN ==========
-function init() {
-  loadTheme();
-  loadProgressFromStorage();
-  loadAdminEpisodes();
-  updateGlobalProgress();
+function initApp() {
+  loadData();
+  setupTheme();
   renderEpisodes();
-  renderContinueBanner();
+  updateGlobalStats();
+  checkContinueListening();
   setupEventListeners();
-  setupAudioListeners();
-  // Si hay un sleep timer guardado, no lo restauramos (decisión de diseño)
-}
-
-// ========== TEMA ==========
-function loadTheme() {
-  const saved = localStorage.getItem('pgn-theme');
-  if (saved === 'light') {
-    state.theme = 'light';
-    document.documentElement.setAttribute('data-theme', 'light');
-  } else {
-    state.theme = 'dark';
-    document.documentElement.removeAttribute('data-theme');
-  }
-}
-
-function toggleTheme() {
-  if (state.theme === 'dark') {
-    state.theme = 'light';
-    document.documentElement.setAttribute('data-theme', 'light');
-  } else {
-    state.theme = 'dark';
-    document.documentElement.removeAttribute('data-theme');
-  }
-  localStorage.setItem('pgn-theme', state.theme);
-}
-
-// ========== GESTIÓN DE EPISODIOS (base + admin) ==========
-function getAllEpisodes() {
-  const adminEpisodes = getAdminEpisodesFromStorage();
-  return [...BASE_EPISODES, ...adminEpisodes];
-}
-
-function getAdminEpisodesFromStorage() {
-  try {
-    const data = localStorage.getItem('pgn-admin-episodes');
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function loadAdminEpisodes() {
-  // Nada que cargar en estado, se leen bajo demanda
-}
-
-function saveAdminEpisodes(episodes) {
-  localStorage.setItem('pgn-admin-episodes', JSON.stringify(episodes));
-}
-
-// ========== PROGRESO DE AUDIOS (localStorage) ==========
-function getProgressFromStorage() {
-  try {
-    const data = localStorage.getItem('pgn-progress');
-    return data ? JSON.parse(data) : {};
-  } catch (e) {
-    return {};
-  }
-}
-
-function saveProgressToStorage(progress) {
-  localStorage.setItem('pgn-progress', JSON.stringify(progress));
-}
-
-function getEpisodeProgress(episodeId) {
-  const all = getProgressFromStorage();
-  return all[episodeId] || { position: 0, completed: false };
-}
-
-function setEpisodeProgress(episodeId, position, durationSeconds) {
-  const all = getProgressFromStorage();
-  const completed = (position / durationSeconds) >= 0.95;
-  all[episodeId] = { position, completed };
-  // Guardar último episodio escuchado
-  if (position > 0) {
-    localStorage.setItem('pgn-last-episode', episodeId);
-  }
-  saveProgressToStorage(all);
-  updateGlobalProgress();
-}
-
-function getCompletedCount() {
-  const all = getProgressFromStorage();
-  let count = 0;
-  Object.values(all).forEach(p => {
-    if (p.completed) count++;
+  
+  // Configuración inicial del audio
+  audio.addEventListener('timeupdate', handleTimeUpdate);
+  audio.addEventListener('ended', handleAudioEnded);
+  audio.addEventListener('loadedmetadata', () => {
+    document.getElementById('time-total').textContent = formatTime(audio.duration);
+    document.getElementById('seek-bar').max = audio.duration;
   });
-  return count;
 }
 
-function updateGlobalProgress() {
-  const total = getAllEpisodes().length;
-  const completed = getCompletedCount();
-  const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-  dom.globalProgressBar.style.setProperty('--progress-width', percent + '%');
-  dom.globalProgressBar.style.setProperty('width', '100%'); /* necesario? usamos pseudo */
-  // Actualizar el pseudo-elemento via estilo inline? Mejor actualizamos el width del after manipulando una variable
-  dom.globalProgressBar.style.setProperty('--progress-fill', percent + '%');
-  // Usaremos un style inline en el pseudo con CSS custom property
-  document.documentElement.style.setProperty('--global-progress-width', percent + '%');
-  dom.globalProgressText.textContent = `${percent}% completado (${completed}/${total})`;
-  // También actualizar aria
-  dom.globalProgressBar.parentElement.querySelector('.global-progress-bar')?.setAttribute?.('aria-valuenow', percent);
+function loadData() {
+  // Cargar episodios del admin desde localStorage y combinar con base
+  const adminEps = JSON.parse(localStorage.getItem('pgn_admin_eps')) || [];
+  episodes = [...baseEpisodes, ...adminEps];
+  
+  // Cargar progreso
+  userProgress = JSON.parse(localStorage.getItem('pgn_progress')) || {};
 }
 
-// ========== CONTINUAR ESCUCHANDO ==========
-function renderContinueBanner() {
-  const lastId = localStorage.getItem('pgn-last-episode');
-  if (!lastId) {
-    dom.continueBanner.classList.add('hidden');
-    return;
-  }
-  const progress = getEpisodeProgress(lastId);
-  if (!progress || progress.position <= 0 || progress.completed) {
-    dom.continueBanner.classList.add('hidden');
-    return;
-  }
-  const episode = getAllEpisodes().find(ep => ep.id === lastId);
-  if (!episode) {
-    dom.continueBanner.classList.add('hidden');
-    return;
-  }
-  const percent = Math.min(100, (progress.position / episode.durationSeconds) * 100);
-  dom.continueTitle.textContent = episode.title;
-  dom.continueProgressFill.style.width = percent + '%';
-  dom.continueBanner.classList.remove('hidden');
-  // Guardar referencia para el click
-  dom.continueBanner.dataset.episodeId = lastId;
+function saveData() {
+  localStorage.setItem('pgn_progress', JSON.stringify(userProgress));
+  updateGlobalStats();
 }
 
-// ========== RENDERIZAR EPISODIOS ==========
-function renderEpisodes(category = 'all') {
-  const all = getAllEpisodes();
-  const filtered = category === 'all' ? all : all.filter(ep => ep.category === category);
-  dom.episodesList.innerHTML = '';
+/* =========================================
+   UI & RENDERIZADO
+   ========================================= */
 
-  if (filtered.length === 0) {
-    dom.emptyState.classList.remove('hidden');
-    dom.episodesList.classList.add('hidden');
-  } else {
-    dom.emptyState.classList.add('hidden');
-    dom.episodesList.classList.remove('hidden');
-  }
+const categoryColors = {
+  general: { class: 'cat-general', text: 'General' },
+  especifico: { class: 'cat-especifico', text: 'Específico' },
+  comportamental: { class: 'cat-comportamental', text: 'Comportamental' }
+};
 
-  filtered.forEach(ep => {
-    const progress = getEpisodeProgress(ep.id);
-    const percent = ep.durationSeconds ? Math.min(100, (progress.position / ep.durationSeconds) * 100) : 0;
+function renderEpisodes() {
+  const list = document.getElementById('episodes-list');
+  list.innerHTML = '';
+  
+  const filteredEps = currentFilter === 'todos' 
+    ? episodes 
+    : episodes.filter(ep => ep.category === currentFilter);
+    
+  filteredEps.forEach(ep => {
+    const progress = userProgress[ep.id] || 0;
+    const percentage = ep.durationSec > 0 ? (progress / ep.durationSec) * 100 : 0;
+    const catStyle = categoryColors[ep.category] || categoryColors.general;
+    
+    // Status text (Completado o tiempo restante/duración)
+    let metaText = ep.durationStr;
+    if (percentage >= 95) {
+      metaText = "✅ Completado";
+    } else if (progress > 10) {
+      metaText = `${Math.floor(percentage)}% completado`;
+    }
+
     const card = document.createElement('div');
     card.className = 'episode-card';
-    card.setAttribute('role', 'listitem');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `${ep.title}, ${ep.category}`);
-    card.dataset.id = ep.id;
+    card.onclick = () => loadAndPlayEpisode(ep.id);
+    
     card.innerHTML = `
-      <div class="episode-emoji">${ep.emoji || '🎧'}</div>
-      <div class="episode-content">
-        <span class="episode-badge badge-${ep.category}">${getCategoryName(ep.category)}</span>
-        <h3 class="episode-title">${ep.title}</h3>
-        <p class="episode-subtitle">${ep.subtitle || ''}</p>
-        <p class="episode-desc">${ep.description || ''}</p>
-        <div class="episode-meta">
-          <span class="episode-duration">⏱️ ${ep.duration}</span>
-          ${progress.completed ? '<span style="color:var(--accent)">✓ Completado</span>' : ''}
-        </div>
-        <div class="episode-progress-individual">
-          <div class="episode-progress-fill" style="width:${percent}%"></div>
+      <div class="ep-emoji">${ep.emoji}</div>
+      <div class="ep-info">
+        <span class="ep-cat-badge ${catStyle.class}">${catStyle.text}</span>
+        <h3 class="ep-title">${ep.title}</h3>
+        <p class="ep-subtitle">${ep.subtitle}</p>
+        <div class="ep-meta">
+          <span>▶️ Reproducir</span>
+          <span>${metaText}</span>
         </div>
       </div>
+      <div class="ep-progress-bg">
+        <div class="ep-progress-fill" style="width: ${percentage}%"></div>
+      </div>
     `;
-    card.addEventListener('click', () => selectEpisode(ep.id));
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter') selectEpisode(ep.id); });
-    dom.episodesList.appendChild(card);
+    list.appendChild(card);
   });
 }
 
-function getCategoryName(slug) {
-  const map = {
-    'general': 'Conocimiento General',
-    'especifico': 'Conocimiento Específico',
-    'comportamental': 'Comportamental'
-  };
-  return map[slug] || slug;
+function checkContinueListening() {
+  const lastPlayedId = localStorage.getItem('pgn_last_played');
+  if (!lastPlayedId) return;
+  
+  const ep = episodes.find(e => e.id === lastPlayedId);
+  const progress = userProgress[lastPlayedId] || 0;
+  
+  if (ep && progress > 5 && (progress / ep.durationSec) < 0.95) {
+    const section = document.getElementById('continue-section');
+    const card = document.getElementById('continue-card');
+    section.classList.remove('hidden');
+    
+    const percentage = (progress / ep.durationSec) * 100;
+    const catStyle = categoryColors[ep.category] || categoryColors.general;
+    
+    card.onclick = () => loadAndPlayEpisode(ep.id);
+    card.innerHTML = `
+      <div class="ep-emoji">${ep.emoji}</div>
+      <div class="ep-info">
+        <span class="ep-cat-badge ${catStyle.class}">Continuar · ${Math.floor(percentage)}%</span>
+        <h3 class="ep-title">${ep.title}</h3>
+        <p class="ep-subtitle">${ep.subtitle}</p>
+      </div>
+      <div class="ep-progress-bg">
+        <div class="ep-progress-fill" style="width: ${percentage}%"></div>
+      </div>
+    `;
+  }
 }
 
-// ========== SELECCIÓN Y REPRODUCCIÓN ==========
-function selectEpisode(episodeId, startPosition = null) {
-  const episode = getAllEpisodes().find(ep => ep.id === episodeId);
-  if (!episode) return;
+function updateGlobalStats() {
+  let completed = 0;
+  episodes.forEach(ep => {
+    const prog = userProgress[ep.id] || 0;
+    if ((prog / ep.durationSec) >= 0.95) completed++;
+  });
+  
+  const total = episodes.length;
+  const percentage = total > 0 ? (completed / total) * 100 : 0;
+  
+  document.getElementById('global-progress').style.width = `${percentage}%`;
+  document.getElementById('global-text').textContent = `${completed} / ${total} audios completados`;
+}
 
-  // Si ya está seleccionado y no se fuerza posición, solo toggle play/pausa
-  if (state.currentEpisodeId === episodeId && startPosition === null) {
-    togglePlayPause();
+/* =========================================
+   LÓGICA DEL REPRODUCTOR
+   ========================================= */
+
+function loadAndPlayEpisode(id) {
+  const ep = episodes.find(e => e.id === id);
+  if (!ep) return;
+  
+  // Si ya es el track actual, solo abrir player y toggle play
+  if (currentEpId === id) {
+    document.getElementById('expanded-player').classList.remove('hidden');
+    if (!isPlaying) togglePlay();
     return;
   }
-
-  // Actualizar estado
-  state.currentEpisodeId = episodeId;
-  state.currentTime = startPosition !== null ? startPosition : getEpisodeProgress(episodeId).position;
-
-  // Cargar audio
-  dom.audio.src = episode.file;
-  dom.audio.load();
-
-  // Actualizar UI
-  updatePlayerUI(episode);
-  showMiniPlayer();
-  dom.expandedPlayer.classList.add('active');
-  dom.expandedPlayer.classList.remove('hidden');
-
-  // Intentar reproducir
-  dom.audio.play().then(() => {
-    state.isPlaying = true;
-    updatePlayPauseButton();
-    startArtworkAnimation();
-    startWaveAnimation();
-  }).catch(err => {
-    console.warn('Reproducción automática bloqueada:', err);
-    state.isPlaying = false;
-    updatePlayPauseButton();
-  });
-}
-
-function updatePlayerUI(episode) {
-  dom.miniArtwork.textContent = episode.emoji || '🎧';
-  dom.miniTitle.textContent = episode.title;
-  dom.artworkEmoji.textContent = episode.emoji || '🎧';
-  dom.playerTitle.textContent = episode.title;
-  dom.playerSubtitle.textContent = episode.subtitle || '';
-  dom.totalTime.textContent = episode.duration;
-}
-
-function showMiniPlayer() {
-  dom.miniPlayer.classList.remove('hidden');
-}
-
-function hideMiniPlayer() {
-  dom.miniPlayer.classList.add('hidden');
-  dom.expandedPlayer.classList.add('hidden');
-  dom.expandedPlayer.classList.remove('active');
-}
-
-// ========== CONTROLES DE REPRODUCCIÓN ==========
-function togglePlayPause() {
-  if (!state.currentEpisodeId) return;
-  if (state.isPlaying) {
-    dom.audio.pause();
-    state.isPlaying = false;
-    stopArtworkAnimation();
-    stopWaveAnimation();
+  
+  currentEpId = id;
+  localStorage.setItem('pgn_last_played', id);
+  
+  // Set UI
+  document.getElementById('mini-player').classList.remove('hidden');
+  document.getElementById('expanded-player').classList.remove('hidden');
+  
+  document.getElementById('mini-title').textContent = ep.title;
+  document.getElementById('mini-subtitle').textContent = ep.subtitle;
+  document.getElementById('player-title').textContent = ep.title;
+  document.getElementById('player-subtitle').textContent = ep.subtitle;
+  document.getElementById('player-emoji').textContent = ep.emoji;
+  
+  const catStyle = categoryColors[ep.category];
+  document.getElementById('player-category-badge').textContent = catStyle ? catStyle.text : 'Audio';
+  
+  // Set Audio
+  audio.src = ep.file;
+  audio.playbackRate = playbackRates[currentRateIndex];
+  
+  // Restore progress
+  if (userProgress[id]) {
+    audio.currentTime = userProgress[id];
   } else {
-    dom.audio.play().then(() => {
-      state.isPlaying = true;
-      startArtworkAnimation();
-      startWaveAnimation();
-    }).catch(() => {});
+    audio.currentTime = 0;
   }
-  updatePlayPauseButton();
+  
+  togglePlay(true);
 }
 
-function updatePlayPauseButton() {
-  if (state.isPlaying) {
-    dom.playIcon.classList.add('hidden');
-    dom.pauseIcon.classList.remove('hidden');
-    dom.miniPlayBtn.textContent = '⏸️';
+function togglePlay(forcePlay = null) {
+  if (forcePlay === true || audio.paused) {
+    audio.play().then(() => {
+      isPlaying = true;
+      updatePlayBtns(true);
+      document.getElementById('artwork-pulse').parentElement.classList.add('playing');
+      document.getElementById('wave-container').classList.add('active');
+    }).catch(e => {
+      console.error("Error reproduciendo:", e);
+      showToast("Error al cargar el audio. ¿Estás offline sin caché?");
+    });
   } else {
-    dom.playIcon.classList.remove('hidden');
-    dom.pauseIcon.classList.add('hidden');
-    dom.miniPlayBtn.textContent = '▶️';
+    audio.pause();
+    isPlaying = false;
+    updatePlayBtns(false);
+    document.getElementById('artwork-pulse').parentElement.classList.remove('playing');
+    document.getElementById('wave-container').classList.remove('active');
+    saveData(); // Guardar progreso al pausar
   }
 }
 
-function seek(seconds) {
-  if (!dom.audio.src) return;
-  dom.audio.currentTime = Math.max(0, Math.min(dom.audio.duration || 0, dom.audio.currentTime + seconds));
+function updatePlayBtns(isPlaying) {
+  const icon = isPlaying ? '⏸️' : '▶️';
+  document.getElementById('mini-play-btn').textContent = icon;
+  document.getElementById('play-pause-btn').textContent = icon;
 }
 
-function setPlaybackRate(rate) {
-  state.playbackRate = rate;
-  dom.audio.playbackRate = rate;
-  dom.speedBtn.textContent = rate === 1 ? '1×' : rate + '×';
-}
-
-function setSleepTimer(minutes) {
-  // Limpiar anterior
-  if (state.sleepTimeoutId) {
-    clearTimeout(state.sleepTimeoutId);
-    state.sleepTimeoutId = null;
+// Throttle save progress to avoid excessive localStorage writing
+let lastSaveTime = 0;
+function handleTimeUpdate() {
+  const current = audio.currentTime;
+  const total = audio.duration;
+  
+  // Update UI
+  document.getElementById('time-current').textContent = formatTime(current);
+  document.getElementById('seek-bar').value = current;
+  
+  if (total > 0) {
+    const percentage = (current / total) * 100;
+    document.getElementById('mini-progress-fill').style.width = `${percentage}%`;
   }
-  state.sleepTimerMinutes = minutes;
-  if (minutes > 0) {
-    state.sleepTimeoutId = setTimeout(() => {
-      if (state.isPlaying) {
-        dom.audio.pause();
-        state.isPlaying = false;
-        updatePlayPauseButton();
-        stopArtworkAnimation();
-        stopWaveAnimation();
-        showToast('⏰ Temporizador: reproducción pausada');
-      }
-      state.sleepTimerMinutes = null;
-    }, minutes * 60 * 1000);
-    showToast(`⏳ Temporizador: ${minutes} minutos`);
-  } else {
-    showToast('Temporizador cancelado');
+  
+  // Save progress every 5 seconds
+  const now = Date.now();
+  if (now - lastSaveTime > 5000 && currentEpId) {
+    userProgress[currentEpId] = current;
+    saveData();
+    lastSaveTime = now;
   }
-  dom.sleepOptions.classList.add('hidden');
 }
 
-// ========== MANEJO DE AUDIO (eventos) ==========
-function setupAudioListeners() {
-  const audio = dom.audio;
-
-  audio.addEventListener('loadedmetadata', () => {
-    state.duration = audio.duration;
-    // Si hay posición guardada y es la primera carga
-    if (state.currentEpisodeId && state.currentTime > 0) {
-      audio.currentTime = state.currentTime;
-    }
-    // Mostrar duración real si difiere
-    updateTimeDisplay();
-  });
-
-  audio.addEventListener('timeupdate', () => {
-    if (!state.currentEpisodeId) return;
-    state.currentTime = audio.currentTime;
-    updateTimeDisplay();
-    updateProgressBars();
-    // Guardar progreso periódicamente (cada 5 segundos aprox.)
-    if (Math.floor(audio.currentTime) % 5 === 0) {
-      const ep = getAllEpisodes().find(e => e.id === state.currentEpisodeId);
-      if (ep) setEpisodeProgress(state.currentEpisodeId, audio.currentTime, ep.durationSeconds);
-    }
-  });
-
-  audio.addEventListener('ended', () => {
-    state.isPlaying = false;
-    updatePlayPauseButton();
-    stopArtworkAnimation();
-    stopWaveAnimation();
-    // Marcar como completado
-    if (state.currentEpisodeId) {
-      const ep = getAllEpisodes().find(e => e.id === state.currentEpisodeId);
-      if (ep) setEpisodeProgress(state.currentEpisodeId, ep.durationSeconds, ep.durationSeconds);
-    }
-    updateGlobalProgress();
-    renderEpisodes(state.activeCategory);
-    renderContinueBanner();
-    showToast('✅ Episodio completado');
-  });
-
-  audio.addEventListener('pause', () => {
-    // Guardar progreso al pausar
-    if (state.currentEpisodeId) {
-      const ep = getAllEpisodes().find(e => e.id === state.currentEpisodeId);
-      if (ep) setEpisodeProgress(state.currentEpisodeId, audio.currentTime, ep.durationSeconds);
-    }
-  });
-}
-
-function updateTimeDisplay() {
-  const current = dom.audio.currentTime || 0;
-  dom.currentTime.textContent = formatTime(current);
-  // Total time from episode metadata or audio
-  const ep = state.currentEpisodeId ? getAllEpisodes().find(e => e.id === state.currentEpisodeId) : null;
-  if (ep) {
-    dom.totalTime.textContent = ep.duration;
-  } else if (dom.audio.duration) {
-    dom.totalTime.textContent = formatTime(dom.audio.duration);
+function handleAudioEnded() {
+  isPlaying = false;
+  updatePlayBtns(false);
+  document.getElementById('wave-container').classList.remove('active');
+  document.getElementById('artwork-pulse').parentElement.classList.remove('playing');
+  
+  if (currentEpId) {
+    // Marcar como completo (durationSec si está disponible, o fallback current)
+    const ep = episodes.find(e => e.id === currentEpId);
+    userProgress[currentEpId] = ep ? ep.durationSec : audio.currentTime;
+    saveData();
+    renderEpisodes(); // actualizar UI
   }
 }
 
 function formatTime(seconds) {
-  if (isNaN(seconds)) return '00:00';
+  if (isNaN(seconds) || seconds < 0) return "00:00";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
-  return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-function updateProgressBars() {
-  if (!state.currentEpisodeId) return;
-  const ep = getAllEpisodes().find(e => e.id === state.currentEpisodeId);
-  if (!ep) return;
-  const percent = Math.min(100, (state.currentTime / ep.durationSeconds) * 100);
-  // Barra expandida
-  dom.progressBarFill.style.width = percent + '%';
-  dom.progressThumb.style.left = percent + '%';
-  dom.progressBarContainer.setAttribute('aria-valuenow', Math.round(percent));
-  // Mini barra
-  dom.miniProgressFill.style.width = percent + '%';
-  // Actualizar tarjeta correspondiente (si visible)
-  const card = document.querySelector(`.episode-card[data-id="${state.currentEpisodeId}"]`);
-  if (card) {
-    const fill = card.querySelector('.episode-progress-fill');
-    if (fill) fill.style.width = percent + '%';
-  }
-}
+/* =========================================
+   EVENT LISTENERS
+   ========================================= */
 
-// ========== ANIMACIONES ==========
-function startArtworkAnimation() {
-  dom.artworkRing1.classList.add('animate');
-  dom.artworkRing2.classList.add('animate');
-  dom.artworkRing3.classList.add('animate');
-}
-
-function stopArtworkAnimation() {
-  dom.artworkRing1.classList.remove('animate');
-  dom.artworkRing2.classList.remove('animate');
-  dom.artworkRing3.classList.remove('animate');
-}
-
-function startWaveAnimation() {
-  dom.waveBars.classList.add('animating');
-}
-
-function stopWaveAnimation() {
-  dom.waveBars.classList.remove('animating');
-}
-
-// ========== SCRUBBING ==========
-function setupScrubbing() {
-  const container = dom.progressBarContainer;
-  let dragging = false;
-
-  function moveToPosition(clientX) {
-    const rect = container.getBoundingClientRect();
-    let percent = (clientX - rect.left) / rect.width;
-    percent = Math.max(0, Math.min(1, percent));
-    const ep = state.currentEpisodeId ? getAllEpisodes().find(e => e.id === state.currentEpisodeId) : null;
-    if (ep && ep.durationSeconds) {
-      const newTime = percent * ep.durationSeconds;
-      dom.audio.currentTime = newTime;
-    }
-  }
-
-  container.addEventListener('mousedown', (e) => {
-    dragging = true;
-    moveToPosition(e.clientX);
-    e.preventDefault();
-  });
-
-  window.addEventListener('mousemove', (e) => {
-    if (dragging) moveToPosition(e.clientX);
-  });
-
-  window.addEventListener('mouseup', () => {
-    dragging = false;
-  });
-
-  // Touch events
-  container.addEventListener('touchstart', (e) => {
-    dragging = true;
-    moveToPosition(e.touches[0].clientX);
-    e.preventDefault();
-  });
-
-  container.addEventListener('touchmove', (e) => {
-    if (dragging) moveToPosition(e.touches[0].clientX);
-  });
-
-  container.addEventListener('touchend', () => {
-    dragging = false;
-  });
-
-  // Keyboard
-  container.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      const step = e.key === 'ArrowRight' ? 5 : -5;
-      seek(step);
-    }
-  });
-}
-
-// ========== EVENT LISTENERS GENERALES ==========
 function setupEventListeners() {
-  // Tema
-  dom.themeToggle.addEventListener('click', toggleTheme);
-
-  // Admin trigger
-  dom.adminTrigger.addEventListener('click', () => {
-    openAdminModal();
+  // Theme Toggle
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('pgn_theme', newTheme);
+    
+    // Cambiar color barra navegación móvil
+    document.getElementById('meta-theme-color').content = newTheme === 'dark' ? '#121212' : '#f3f4f6';
   });
 
-  // Cerrar admin
-  dom.closeAdmin.addEventListener('click', closeAdminModal);
-  dom.adminModal.querySelector('.admin-overlay').addEventListener('click', closeAdminModal);
-
-  // Admin login
-  dom.adminLoginBtn.addEventListener('click', handleAdminLogin);
-  dom.adminPassword.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleAdminLogin();
-  });
-
-  // Admin agregar episodio
-  dom.addEpisodeBtn.addEventListener('click', handleAddEpisode);
-
-  // Pestañas de categoría
-  dom.categoryTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      dom.categoryTabs.forEach(t => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      state.activeCategory = tab.dataset.category;
-      renderEpisodes(state.activeCategory);
-    });
-  });
-
-  // Mini player
-  dom.miniPlayBtn.addEventListener('click', togglePlayPause);
-  dom.miniPlayerTrigger.addEventListener('click', () => {
-    dom.expandedPlayer.classList.add('active');
-    dom.expandedPlayer.classList.remove('hidden');
-  });
-
-  // Colapsar player expandido
-  dom.collapsePlayer.addEventListener('click', () => {
-    dom.expandedPlayer.classList.remove('active');
-    // No ocultar mini player
-    setTimeout(() => {
-      if (!dom.expandedPlayer.classList.contains('active')) {
-        dom.expandedPlayer.classList.add('hidden');
-      }
-    }, 400);
-  });
-
-  // Controles expandidos
-  dom.playPauseBtn.addEventListener('click', togglePlayPause);
-  dom.rewindBtn.addEventListener('click', () => seek(-10));
-  dom.forwardBtn.addEventListener('click', () => seek(10));
-  dom.speedBtn.addEventListener('click', () => {
-    const rates = [1, 1.5, 2];
-    const currentIdx = rates.indexOf(state.playbackRate);
-    const nextIdx = (currentIdx + 1) % rates.length;
-    setPlaybackRate(rates[nextIdx]);
-  });
-  dom.sleepTimerBtn.addEventListener('click', () => {
-    dom.sleepOptions.classList.toggle('hidden');
-  });
-
-  // Sleep options
-  dom.sleepOptions.querySelectorAll('.sleep-option').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const minutes = parseInt(btn.dataset.minutes);
-      setSleepTimer(minutes);
-    });
-  });
-
-  // Continue banner
-  dom.continuePlayBtn.addEventListener('click', () => {
-    const episodeId = dom.continueBanner.dataset.episodeId;
-    if (episodeId) {
-      const progress = getEpisodeProgress(episodeId);
-      selectEpisode(episodeId, progress.position);
+  // Filters
+  document.getElementById('categories-tabs').addEventListener('click', e => {
+    if (e.target.classList.contains('cat-btn')) {
+      document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+      currentFilter = e.target.getAttribute('data-cat');
+      renderEpisodes();
     }
   });
 
-  // Configurar scrubbing
-  setupScrubbing();
+  // Player Interactions
+  document.getElementById('mini-expand-trigger').addEventListener('click', () => {
+    document.getElementById('expanded-player').classList.remove('hidden');
+  });
+  
+  document.getElementById('close-player-btn').addEventListener('click', () => {
+    document.getElementById('expanded-player').classList.add('hidden');
+    renderEpisodes(); // Refresh list to show updated progress bars
+    checkContinueListening();
+  });
 
-  // Teclado global
-  document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === ' ') {
-      e.preventDefault();
-      togglePlayPause();
+  document.getElementById('mini-play-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePlay();
+  });
+  
+  document.getElementById('play-pause-btn').addEventListener('click', () => togglePlay());
+  
+  document.getElementById('skip-back-btn').addEventListener('click', () => { audio.currentTime = Math.max(0, audio.currentTime - 10); });
+  document.getElementById('skip-fwd-btn').addEventListener('click', () => { audio.currentTime = Math.min(audio.duration, audio.currentTime + 10); });
+  
+  // Seek bar
+  const seekBar = document.getElementById('seek-bar');
+  seekBar.addEventListener('input', () => {
+    audio.currentTime = seekBar.value;
+    document.getElementById('time-current').textContent = formatTime(seekBar.value);
+  });
+
+  // Speed
+  document.getElementById('speed-btn').addEventListener('click', (e) => {
+    currentRateIndex = (currentRateIndex + 1) % playbackRates.length;
+    const rate = playbackRates[currentRateIndex];
+    audio.playbackRate = rate;
+    e.target.textContent = rate + 'x';
+    showToast(`Velocidad: ${rate}x`);
+  });
+
+  // Sleep Timer
+  document.getElementById('sleep-btn').addEventListener('click', () => {
+    currentSleepIndex = (currentSleepIndex + 1) % sleepTimes.length;
+    const minutes = sleepTimes[currentSleepIndex];
+    
+    if (sleepTimer) clearTimeout(sleepTimer);
+    
+    if (minutes === 0) {
+      showToast('Sleep timer desactivado');
+      document.getElementById('sleep-btn').style.color = 'inherit';
+    } else {
+      showToast(`El audio se pausará en ${minutes} min`);
+      document.getElementById('sleep-btn').style.color = 'var(--primary-color)';
+      sleepTimer = setTimeout(() => {
+        if (!audio.paused) togglePlay();
+        showToast('Temporizador completado. Audio pausado.');
+        currentSleepIndex = 0;
+        document.getElementById('sleep-btn').style.color = 'inherit';
+      }, minutes * 60 * 1000);
     }
+  });
+
+  // Admin Modals
+  document.getElementById('admin-btn').addEventListener('click', () => {
+    document.getElementById('admin-modal').classList.remove('hidden');
+    document.getElementById('admin-login-view').classList.remove('hidden');
+    document.getElementById('admin-dashboard-view').classList.add('hidden');
+    document.getElementById('admin-pass').value = '';
+  });
+  
+  document.getElementById('close-admin-btn').addEventListener('click', () => {
+    document.getElementById('admin-modal').classList.add('hidden');
+  });
+
+  document.getElementById('login-btn').addEventListener('click', () => {
+    const pass = document.getElementById('admin-pass').value;
+    if (pass === ADMIN_PASSWORD) {
+      document.getElementById('admin-login-view').classList.add('hidden');
+      document.getElementById('admin-dashboard-view').classList.remove('hidden');
+      renderAdminEpisodes();
+    } else {
+      showToast("Contraseña incorrecta");
+    }
+  });
+  
+  // Admin Form Submit
+  document.getElementById('add-episode-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    addNewEpisode();
   });
 }
 
-// ========== ADMIN ==========
-function openAdminModal() {
-  dom.adminModal.classList.remove('hidden');
-  dom.adminPassword.value = '';
-  dom.adminError.classList.add('hidden');
-  if (state.adminAuthenticated) {
-    showAdminPanel();
-  } else {
-    dom.adminAuth.classList.remove('hidden');
-    dom.adminContent.classList.add('hidden');
-  }
+function setupTheme() {
+  const savedTheme = localStorage.getItem('pgn_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('meta-theme-color').content = savedTheme === 'dark' ? '#121212' : '#f3f4f6';
 }
 
-function closeAdminModal() {
-  dom.adminModal.classList.add('hidden');
-}
+/* =========================================
+   ADMINISTRACIÓN
+   ========================================= */
 
-function handleAdminLogin() {
-  const pass = dom.adminPassword.value.trim();
-  if (pass === ADMIN_PASSWORD) {
-    state.adminAuthenticated = true;
-    dom.adminError.classList.add('hidden');
-    showAdminPanel();
-  } else {
-    dom.adminError.classList.remove('hidden');
-  }
-}
-
-function showAdminPanel() {
-  dom.adminAuth.classList.add('hidden');
-  dom.adminContent.classList.remove('hidden');
-  renderAdminEpisodeList();
-}
-
-function renderAdminEpisodeList() {
-  const all = getAllEpisodes();
-  dom.adminEpisodeList.innerHTML = '';
-  all.forEach(ep => {
+function renderAdminEpisodes() {
+  const list = document.getElementById('admin-episodes-list');
+  list.innerHTML = '';
+  
+  episodes.forEach(ep => {
     const li = document.createElement('li');
-    li.innerHTML = `
-      <span class="episode-info">
-        <strong>${ep.emoji || ''} ${ep.title}</strong> 
-        <span style="color:var(--text-muted)">(${getCategoryName(ep.category)})</span>
-        <br><small>${ep.file}</small>
-      </span>
-      ${!ep.isBase ? '<button class="delete-btn" data-id="'+ep.id+'">🗑️ Eliminar</button>' : '<span style="font-size:0.7rem;color:var(--text-muted)">Base</span>'}
-    `;
-    dom.adminEpisodeList.appendChild(li);
-  });
-
-  // Eventos para eliminar
-  dom.adminEpisodeList.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      deleteAdminEpisode(btn.dataset.id);
-    });
+    li.className = 'admin-ep-item';
+    
+    let html = `<div><strong>${ep.title}</strong> <br><small>${ep.file}</small></div>`;
+    
+    if (ep.isAdminAdded) {
+      html += `<button class="delete-btn" onclick="deleteEpisode('${ep.id}')" aria-label="Eliminar">🗑️</button>`;
+    } else {
+      html += `<span style="font-size: 0.8rem; color: var(--text-muted)">Base</span>`;
+    }
+    
+    li.innerHTML = html;
+    list.appendChild(li);
   });
 }
 
-function handleAddEpisode() {
-  const title = dom.newTitle.value.trim();
-  const subtitle = dom.newSubtitle.value.trim();
-  const description = dom.newDesc.value.trim();
-  const category = dom.newCategory.value;
-  const emoji = dom.newEmoji.value.trim() || '🎧';
-  const fileName = dom.newFileName.value.trim();
-  const durationStr = dom.newDuration.value.trim();
-
-  if (!title || !fileName || !durationStr) {
-    showToast('❌ Completa título, archivo y duración');
-    return;
+function addNewEpisode() {
+  // Convertir duración MM:SS a segundos
+  const durStr = document.getElementById('add-dur').value;
+  let durSec = 0;
+  if (durStr.includes(':')) {
+    const parts = durStr.split(':');
+    durSec = parseInt(parts[0]) * 60 + parseInt(parts[1]);
   }
 
-  // Validar formato duración
-  const durParts = durationStr.split(':');
-  if (durParts.length !== 2 || isNaN(durParts[0]) || isNaN(durParts[1])) {
-    showToast('❌ Formato de duración inválido (mm:ss)');
-    return;
-  }
-  const durationSeconds = parseInt(durParts[0])*60 + parseInt(durParts[1]);
-
-  const newEpisode = {
-    id: 'admin-' + Date.now(),
-    title,
-    subtitle,
-    description,
-    category,
-    emoji,
-    file: `audios/${fileName}`,
-    duration: durationStr,
-    durationSeconds,
-    isBase: false
+  const newEp = {
+    id: 'ep-admin-' + Date.now(),
+    title: document.getElementById('add-title').value,
+    subtitle: document.getElementById('add-subtitle').value,
+    desc: document.getElementById('add-desc').value,
+    category: document.getElementById('add-cat').value,
+    emoji: document.getElementById('add-emoji').value,
+    file: document.getElementById('add-file').value,
+    durationStr: durStr,
+    durationSec: durSec,
+    isAdminAdded: true
   };
 
-  const adminEpisodes = getAdminEpisodesFromStorage();
-  adminEpisodes.push(newEpisode);
-  saveAdminEpisodes(adminEpisodes);
-
-  // Limpiar formulario
-  dom.newTitle.value = '';
-  dom.newSubtitle.value = '';
-  dom.newDesc.value = '';
-  dom.newFileName.value = '';
-  dom.newDuration.value = '';
-  dom.newEmoji.value = '';
-
-  renderAdminEpisodeList();
-  renderEpisodes(state.activeCategory);
-  updateGlobalProgress();
-  showToast('✅ Episodio agregado correctamente');
+  // Guardar en array local
+  episodes.push(newEp);
+  
+  // Guardar en localStorage (Solo los agregados por admin)
+  const adminEps = episodes.filter(ep => ep.isAdminAdded);
+  localStorage.setItem('pgn_admin_eps', JSON.stringify(adminEps));
+  
+  // Reset UI
+  document.getElementById('add-episode-form').reset();
+  showToast("Episodio guardado exitosamente");
+  renderAdminEpisodes();
+  renderEpisodes();
+  updateGlobalStats();
 }
 
-function deleteAdminEpisode(episodeId) {
-  let adminEpisodes = getAdminEpisodesFromStorage();
-  adminEpisodes = adminEpisodes.filter(ep => ep.id !== episodeId);
-  saveAdminEpisodes(adminEpisodes);
-  renderAdminEpisodeList();
-  renderEpisodes(state.activeCategory);
-  updateGlobalProgress();
-  showToast('🗑️ Episodio eliminado');
-  // Si el episodio eliminado era el actual, detener reproducción
-  if (state.currentEpisodeId === episodeId) {
-    dom.audio.pause();
-    dom.audio.src = '';
-    state.currentEpisodeId = null;
-    state.isPlaying = false;
-    updatePlayPauseButton();
-    hideMiniPlayer();
-    stopArtworkAnimation();
-    stopWaveAnimation();
-  }
-}
+window.deleteEpisode = function(id) { // expuesto al window para el onclick inline
+  if (!confirm('¿Seguro que deseas eliminar este episodio?')) return;
+  
+  episodes = episodes.filter(ep => ep.id !== id);
+  const adminEps = episodes.filter(ep => ep.isAdminAdded);
+  localStorage.setItem('pgn_admin_eps', JSON.stringify(adminEps));
+  
+  showToast("Episodio eliminado");
+  renderAdminEpisodes();
+  renderEpisodes();
+  updateGlobalStats();
+};
 
-// ========== TOAST ==========
-function showToast(message) {
+/* =========================================
+   UTILITIES & PWA
+   ========================================= */
+
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.textContent = message;
-  dom.toastContainer.appendChild(toast);
+  toast.textContent = msg;
+  container.appendChild(toast);
+  
+  // Limpiar DOM después de la animación (3s aprox)
   setTimeout(() => {
-    toast.remove();
+    if (container.contains(toast)) container.removeChild(toast);
   }, 3000);
 }
 
-// ========== INICIAR APP ==========
-document.addEventListener('DOMContentLoaded', init);
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registrado', reg.scope))
+        .catch(err => console.log('Error al registrar SW:', err));
+    });
+  }
+}

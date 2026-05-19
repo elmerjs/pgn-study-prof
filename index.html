@@ -1,280 +1,170 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#0a0a0a">
-  <meta name="description" content="App de estudio para concurso de méritos al cargo Profesional Coordinador de la PGN">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PGN Study PRO · Coordinador</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#121212" id="meta-theme-color">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 
-  <!-- ==================== HEADER ==================== -->
-  <header class="app-header" role="banner">
-    <div class="header-content">
-      <div class="header-title">
-        <h1>PGN Study <span class="pro-badge">PRO</span></h1>
-        <p class="header-subtitle">Coordinador · Concurso de Méritos</p>
-      </div>
-      <div class="header-actions">
-        <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
-          <span class="theme-icon-dark">🌙</span>
-          <span class="theme-icon-light">☀️</span>
-        </button>
-        <button id="adminTrigger" class="icon-btn admin-trigger" aria-label="Panel de administración" title="Administración">
-          ⚙️
-        </button>
-      </div>
+  <header class="app-header">
+    <div class="header-left">
+      <h1>PGN Study PRO</h1>
+      <span class="role-badge">Coordinador</span>
     </div>
-    <!-- Barra de progreso global -->
-    <div class="global-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-      <div class="global-progress-bar" id="globalProgressBar"></div>
-      <span class="global-progress-text" id="globalProgressText">0% completado</span>
+    <div class="header-right">
+      <button id="theme-toggle" class="icon-btn" aria-label="Cambiar tema">🌓</button>
+      <button id="admin-btn" class="icon-btn" aria-label="Administración">⚙️</button>
     </div>
   </header>
 
-  <!-- ==================== MAIN CONTENT ==================== -->
-  <main class="main-content" role="main">
-    <!-- Banner "Continuar escuchando" -->
-    <section id="continueBanner" class="continue-banner hidden" aria-live="polite">
-      <div class="continue-info">
-        <span class="continue-icon">🎧</span>
-        <div>
-          <p class="continue-label">Continuar escuchando</p>
-          <p id="continueTitle" class="continue-title"></p>
-          <div class="continue-progress-bar">
-            <div id="continueProgressFill" class="continue-progress-fill"></div>
-          </div>
+  <main class="main-content">
+    <section class="global-stats">
+      <div class="stat-card">
+        <h3>Progreso Global</h3>
+        <div class="progress-bar-bg">
+          <div id="global-progress" class="progress-bar-fill"></div>
         </div>
+        <p id="global-text">0 / 0 completados</p>
       </div>
-      <button id="continuePlayBtn" class="btn-play-small" aria-label="Reproducir último episodio">
-        ▶️
-      </button>
     </section>
 
-    <!-- Tabs de categorías -->
-    <nav class="category-tabs" role="tablist" aria-label="Filtrar por categoría">
-      <button class="cat-tab active" data-category="all" role="tab" aria-selected="true">🎓 Todos</button>
-      <button class="cat-tab" data-category="general" role="tab" aria-selected="false">📚 Conocimiento General</button>
-      <button class="cat-tab" data-category="especifico" role="tab" aria-selected="false">🎯 Conocimiento Específico</button>
-      <button class="cat-tab" data-category="comportamental" role="tab" aria-selected="false">🧠 Comportamental</button>
-    </nav>
-
-    <!-- Lista de episodios -->
-    <section id="episodesList" class="episodes-list" role="list" aria-label="Lista de episodios">
-      <!-- Se llena dinámicamente con JS -->
+    <section id="continue-section" class="hidden">
+      <h2 class="section-title">Continuar escuchando</h2>
+      <div id="continue-card" class="continue-card">
+        </div>
     </section>
 
-    <!-- Estado vacío cuando no hay episodios en categoría -->
-    <div id="emptyState" class="empty-state hidden">
-      <span class="empty-icon">📭</span>
-      <p>No hay episodios en esta categoría</p>
-    </div>
+    <section class="categories-wrapper">
+      <div class="categories-scroll" id="categories-tabs">
+        <button class="cat-btn active" data-cat="todos">🎓 Todos</button>
+        <button class="cat-btn" data-cat="general">📚 General</button>
+        <button class="cat-btn" data-cat="especifico">🎯 Específico</button>
+        <button class="cat-btn" data-cat="comportamental">🧠 Comportamental</button>
+      </div>
+    </section>
+
+    <section class="episodes-section">
+      <h2 class="section-title">Episodios</h2>
+      <div id="episodes-list" class="episodes-grid">
+        </div>
+    </section>
   </main>
 
-  <!-- ==================== MINI PLAYER (fijo abajo) ==================== -->
-  <aside id="miniPlayer" class="mini-player hidden" aria-label="Reproductor mini">
-    <button class="mini-player-trigger" id="miniPlayerTrigger" aria-label="Abrir reproductor completo">
-      <div class="mini-artwork" id="miniArtwork">🎙️</div>
-      <div class="mini-info">
-        <p id="miniTitle" class="mini-title"></p>
-        <div class="mini-progress-bar">
-          <div id="miniProgressFill" class="mini-progress-fill"></div>
-        </div>
-      </div>
-    </button>
-    <button id="miniPlayBtn" class="btn-play-mini" aria-label="Reproducir o pausar">
-      ▶️
-    </button>
-  </aside>
-
-  <!-- ==================== PLAYER EXPANDIDO ==================== -->
-  <section id="expandedPlayer" class="expanded-player hidden" aria-label="Reproductor expandido" role="dialog">
-    <div class="player-backdrop"></div>
-    <div class="player-content">
-      <button id="collapsePlayer" class="btn-collapse" aria-label="Minimizar reproductor">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
-      </button>
-
-      <!-- Artwork animado con anillos -->
-      <div class="artwork-container">
-        <div id="artworkRing1" class="artwork-ring ring-1"></div>
-        <div id="artworkRing2" class="artwork-ring ring-2"></div>
-        <div id="artworkRing3" class="artwork-ring ring-3"></div>
-        <div id="artworkEmoji" class="artwork-emoji">🎙️</div>
-      </div>
-
-      <!-- Ondas animadas -->
-      <div class="wave-bars" id="waveBars">
-        <span class="bar bar-1"></span>
-        <span class="bar bar-2"></span>
-        <span class="bar bar-3"></span>
-        <span class="bar bar-4"></span>
-        <span class="bar bar-5"></span>
-        <span class="bar bar-6"></span>
-        <span class="bar bar-7"></span>
-      </div>
-
-      <!-- Info del episodio -->
-      <div class="player-episode-info">
-        <h2 id="playerTitle">Selecciona un episodio</h2>
-        <p id="playerSubtitle"></p>
-      </div>
-
-      <!-- Barra de progreso scrubable -->
-      <div class="player-progress-container">
-        <span id="currentTime" class="time-label">00:00</span>
-        <div id="progressBarContainer" class="progress-bar-scrub" role="slider" aria-label="Progreso de reproducción" tabindex="0"
-             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <div id="progressBarFill" class="progress-bar-fill"></div>
-          <div id="progressThumb" class="progress-thumb"></div>
-        </div>
-        <span id="totalTime" class="time-label">00:00</span>
-      </div>
-
-      <!-- Controles principales -->
-      <div class="player-controls">
-        <button id="speedBtn" class="control-btn" aria-label="Velocidad de reproducción">1×</button>
-        <button id="rewindBtn" class="control-btn" aria-label="Retroceder 10 segundos">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
-        </button>
-        <button id="playPauseBtn" class="control-btn btn-play-lg" aria-label="Reproducir">
-          <svg id="playIcon" width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          <svg id="pauseIcon" width="40" height="40" viewBox="0 0 24 24" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        </button>
-        <button id="forwardBtn" class="control-btn" aria-label="Adelantar 10 segundos">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
-        </button>
-        <button id="sleepTimerBtn" class="control-btn" aria-label="Temporizador de apagado">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        </button>
-      </div>
-
-      <!-- Sleep timer options -->
-      <div id="sleepOptions" class="sleep-options hidden">
-        <button class="sleep-option" data-minutes="15">15 min</button>
-        <button class="sleep-option" data-minutes="30">30 min</button>
-        <button class="sleep-option" data-minutes="45">45 min</button>
-        <button class="sleep-option" data-minutes="60">1 hora</button>
-        <button class="sleep-option sleep-cancel" data-minutes="0">Cancelar</button>
+  <div id="mini-player" class="mini-player hidden">
+    <div class="mini-info" id="mini-expand-trigger">
+      <div class="mini-icon">🎵</div>
+      <div class="mini-text">
+        <h4 id="mini-title">Título</h4>
+        <p id="mini-subtitle">Subtítulo</p>
       </div>
     </div>
-  </section>
+    <div class="mini-controls">
+      <button id="mini-play-btn" class="icon-btn play-btn" aria-label="Play/Pause">▶️</button>
+    </div>
+    <div class="mini-progress">
+      <div id="mini-progress-fill" class="mini-progress-fill"></div>
+    </div>
+  </div>
 
-  <!-- ==================== ADMIN PANEL (modal) ==================== -->
-  <div id="adminModal" class="admin-modal hidden" role="dialog" aria-modal="true" aria-label="Panel de administración">
-    <div class="admin-overlay"></div>
-    <div class="admin-panel">
-      <div class="admin-header">
-        <h2>Panel de Administración</h2>
-        <button id="closeAdmin" class="btn-close" aria-label="Cerrar panel">&times;</button>
+  <div id="expanded-player" class="expanded-player hidden">
+    <div class="expanded-header">
+      <button id="close-player-btn" class="icon-btn" aria-label="Cerrar">🔽</button>
+      <span class="player-category" id="player-category-badge">Categoría</span>
+      <button id="speed-btn" class="text-btn">1x</button>
+    </div>
+
+    <div class="artwork-container">
+      <div id="artwork-pulse" class="artwork-pulse">
+        <div class="artwork-emoji" id="player-emoji">📚</div>
+      </div>
+    </div>
+
+    <div class="player-info">
+      <h2 id="player-title">Título del episodio</h2>
+      <p id="player-subtitle">Subtítulo del episodio</p>
+    </div>
+
+    <div class="wave-container" id="wave-container">
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    </div>
+
+    <div class="progress-container">
+      <input type="range" id="seek-bar" value="0" min="0" max="100" step="0.1">
+      <div class="time-labels">
+        <span id="time-current">00:00</span>
+        <span id="time-total">00:00</span>
+      </div>
+    </div>
+
+    <div class="main-controls">
+      <button id="sleep-btn" class="icon-btn" aria-label="Sleep Timer">💤</button>
+      <button id="skip-back-btn" class="icon-btn large-btn" aria-label="Retroceder 10s">⏪</button>
+      <button id="play-pause-btn" class="icon-btn giant-btn play-btn" aria-label="Play/Pause">▶️</button>
+      <button id="skip-fwd-btn" class="icon-btn large-btn" aria-label="Avanzar 10s">⏩</button>
+      <button class="icon-btn placeholder-btn"></button> </div>
+  </div>
+
+  <div id="admin-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="close-admin-btn" class="close-modal-btn">✖</button>
+      
+      <div id="admin-login-view">
+        <h2>🔒 Panel de Admin</h2>
+        <p>Ingresa la contraseña para continuar.</p>
+        <input type="password" id="admin-pass" placeholder="Contraseña..." class="input-field">
+        <button id="login-btn" class="btn-primary">Entrar</button>
       </div>
 
-      <!-- Paso 1: Autenticación -->
-      <div id="adminAuth" class="admin-auth">
-        <p>Ingresa la contraseña de administrador:</p>
-        <input type="password" id="adminPassword" class="admin-input" placeholder="Contraseña" aria-label="Contraseña">
-        <button id="adminLoginBtn" class="btn-primary">Ingresar</button>
-        <p id="adminError" class="admin-error hidden">Contraseña incorrecta</p>
-      </div>
-
-      <!-- Paso 2: Panel de gestión (oculto hasta autenticarse) -->
-      <div id="adminContent" class="admin-content hidden">
-        <!-- Formulario para agregar episodio -->
-        <div class="admin-form">
-          <h3>Agregar nuevo episodio</h3>
-          <div class="form-group">
-            <label for="newTitle">Título *</label>
-            <input type="text" id="newTitle" placeholder="Ej: Derecho Administrativo" required>
-          </div>
-          <div class="form-group">
-            <label for="newSubtitle">Subtítulo</label>
-            <input type="text" id="newSubtitle" placeholder="Subtítulo descriptivo">
-          </div>
-          <div class="form-group">
-            <label for="newDesc">Descripción corta</label>
-            <textarea id="newDesc" rows="2" placeholder="Descripción del episodio"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="newCategory">Categoría *</label>
-            <select id="newCategory" required>
-              <option value="general">📚 Conocimiento General</option>
-              <option value="especifico">🎯 Conocimiento Específico</option>
-              <option value="comportamental">🧠 Comportamental</option>
+      <div id="admin-dashboard-view" class="hidden">
+        <h2>Panel de Control</h2>
+        
+        <details class="admin-details">
+          <summary>➕ Agregar nuevo episodio</summary>
+          <form id="add-episode-form" class="admin-form">
+            <input type="text" id="add-title" placeholder="Título" required class="input-field">
+            <input type="text" id="add-subtitle" placeholder="Subtítulo" required class="input-field">
+            <input type="text" id="add-desc" placeholder="Descripción corta" required class="input-field">
+            <select id="add-cat" required class="input-field">
+              <option value="general">Conocimiento General</option>
+              <option value="especifico">Conocimiento Específico</option>
+              <option value="comportamental">Comportamental</option>
             </select>
+            <input type="text" id="add-emoji" placeholder="Emoji (ej. ⚖️)" required class="input-field">
+            <input type="text" id="add-file" placeholder="Archivo (ej. audios/Nuevo.m4a)" required class="input-field">
+            <input type="text" id="add-dur" placeholder="Duración referencial (ej. 15:30)" required class="input-field">
+            <button type="submit" class="btn-primary">Guardar Episodio</button>
+          </form>
+        </details>
+        
+        <details class="admin-details">
+          <summary>🛠 Instrucciones de Publicación (Git)</summary>
+          <div class="git-instructions">
+            <p>1. Guarda el nuevo archivo <code>.m4a</code> en la carpeta <code>audios/</code>.</p>
+            <p>2. En la terminal ejecuta:</p>
+            <code>git add .</code>
+            <code>git commit -m "Añade nuevo audio"</code>
+            <code>git push origin main</code>
+            <p>3. Agrega los datos del episodio en este panel.</p>
           </div>
-          <div class="form-group">
-            <label for="newEmoji">Emoji / Ícono</label>
-            <input type="text" id="newEmoji" placeholder="🎧" maxlength="2">
-          </div>
-          <div class="form-group">
-            <label for="newFileName">Nombre del archivo de audio *</label>
-            <input type="text" id="newFileName" placeholder="Ej: mi_audio.m4a (debe existir en audios/)" required>
-          </div>
-          <div class="form-group">
-            <label for="newDuration">Duración (mm:ss) *</label>
-            <input type="text" id="newDuration" placeholder="Ej: 25:30" pattern="\d{1,2}:\d{2}" required>
-          </div>
-          <button id="addEpisodeBtn" class="btn-primary">➕ Agregar episodio</button>
-        </div>
+        </details>
 
-        <!-- Lista de episodios actuales -->
-        <div class="admin-episodes-list">
-          <h3>Episodios actuales</h3>
-          <ul id="adminEpisodeList" class="admin-list">
-            <!-- Dinámico -->
+        <h3>Episodios Actuales</h3>
+        <ul id="admin-episodes-list" class="admin-ep-list">
           </ul>
-        </div>
-
-        <!-- Instrucciones para subir audios -->
-        <div class="admin-instructions">
-          <h3>📤 ¿Cómo publicar un nuevo audio?</h3>
-          <ol>
-            <li>Coloca el archivo <code>.m4a</code> en la carpeta <code>audios/</code> de tu repositorio local.</li>
-            <li>Agrega el episodio desde este panel (los datos se guardan en localStorage).</li>
-            <li>Ejecuta en terminal:
-              <pre><code>git add audios/mi_audio.m4a
-git commit -m "Agregar nuevo episodio: Título"
-git push</code></pre>
-            </li>
-            <li>La app cargará el audio desde la red; el Service Worker lo cacheará para offline.</li>
-          </ol>
-          <p class="note">⚠️ Recuerda que el archivo debe ser accesible en la misma ruta relativa (<code>audios/</code>) en producción.</p>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Toast container -->
-  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="toast-container"></div>
 
-  <!-- Audio element (oculto, manejado por JS) -->
-  <audio id="audioPlayer" preload="metadata"></audio>
-
-  <script src="script.js"></script>
-  <script>
-    // Registro del Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(registration => {
-            console.log('[App] Service Worker registrado con éxito:', registration.scope);
-          })
-          .catch(error => {
-            console.error('[App] Error al registrar Service Worker:', error);
-          });
-      });
-    }
-  </script>
+  <script src="./script.js"></script>
 </body>
 </html>
